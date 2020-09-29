@@ -4,14 +4,41 @@
 
 import requests
 import re
+import os
 import argparse
+from bs4 import BeautifulSoup
+
+jsbasedir = "js"
+cssbasedir = "css"
 
 def testurl(url):
     pattern = r'http[s]?://(.*)'
     if re.match(pattern,url):
-        print '[*] valid'
+        return True
     else:
-        print '[*] invalid url'
+        return False
+
+def proctext(html):
+
+    soup = BeautifulSoup(html, 'lxml')
+
+    script = soup.findAll("script",attrs={"src":True})
+    #  print script
+    for item in script:
+
+        src = item['src']
+        newname = saveotherfile(src)
+        item['src'] = newname
+
+    #  print soup
+    return soup.prettify()
+
+def saveotherfile(link):
+    filename = link.split('/')[-1]
+
+    if filename.split('.')[-1] == 'js':
+        print filename
+
 
 
 if __name__=='__main__':
@@ -20,5 +47,15 @@ if __name__=='__main__':
     args = parser.parse_args()
 
     url = args.url
-    testurl(url)
+
+    if testurl(url):
+
+        page = requests.get(url=url)
+        #  print len(page.text)
+        pagedic = proctext(page.text)
+        #  savefile(pagedic)
+
+    else:
+        print "[*] Invalid URL"
+
 
