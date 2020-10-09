@@ -14,12 +14,16 @@ cssbasedir = "css"
 imgbasedir = "img"
 
 def testurl(url):
-    pattern = r'http[s]?://(.*)/.*'
+    pattern = r'http[s]?://(.*)?/?.*'
     if re.match(pattern,url):
         result = re.findall(pattern,url)[0]
-        return result
+        try:
+            req = requests.get(url)
+            return result,req.text
+        except:
+            return None
     else:
-        return False
+        return None
 
 def proctext(html):
 
@@ -79,15 +83,14 @@ if __name__=='__main__':
 
     url = args.url
 
-    splurl = testurl(url)
+    splurl,page = testurl(url)
     if splurl :
         basedir = splurl
         print basedir
         if not os.path.exists(basedir):
             os.makedirs(basedir)
 
-        page = requests.get(url=url)
-        newpage = proctext(page.text)
+        newpage = proctext(page)
         webpagedir = basedir + "/index.html"  
         with opne(webpagedir, "w") as f:
             f.write(newpage)
