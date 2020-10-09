@@ -11,9 +11,10 @@ from bs4 import BeautifulSoup
 basedir = ""
 jsbasedir = "js"
 cssbasedir = "css"
+imgbasedir = "img"
 
 def testurl(url):
-    pattern = r'http[s]?://(.*)'
+    pattern = r'http[s]?://(.*)/.*'
     if re.match(pattern,url):
         result = re.findall(pattern,url)[0]
         return result
@@ -25,11 +26,16 @@ def proctext(html):
     soup = BeautifulSoup(html, 'lxml')
 
     script = soup.findAll("script",attrs={"src":True})
-    for item in script:
-
-        src = item['src']
+    for jsitem in script:
+        src = jsitem['src']
         newname = saveotherfile(src)
-        item['src'] = newname
+        jsitem['src'] = newname
+
+    link = soup.findAll("link",attrs={"href":True})
+    for cssitem in link:
+        href = cssitem['href']
+        newname = saveotherfile(href)
+        cssitem['href'] = newname
 
     #  print soup
     return soup.prettify()
@@ -46,7 +52,25 @@ def saveotherfile(link):
             f.write(content)
         return newname
 
+    elif filename.split('.')[-1] == 'css':
+        content = requests.get(url=link).text
+        if not os.path.exists(cssbasedir):
+            os.makedirs(cssbasedir)
+        newname = basedir + "/" + cssbasedir + "/" + filename
+        with open(newname, "w") as f:
+            f.write(content)
+        return newname
 
+    else:
+        pattern = r'.*\.(png|jpe?g|gif|bmp|psd|tiff|tga|eps)'
+        if re.match(pattern, filename):
+            content = requests.get(url=link).text
+            if not os.path.exists(imgbasedir):
+                os.makedirs(imgbasedir)
+            newname = basedir + "/" + imgbasedir + "/" + filename
+            with open(newname, "wb") as f:
+                f.write(content)
+            return newname
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description='Back up any webpage to the local')
@@ -56,13 +80,17 @@ if __name__=='__main__':
     url = args.url
 
     splurl = testurl(url)
-    if splurl != "No":
+    if splurl :
         basedir = splurl
+        print basedir
         if not os.path.exists(basedir):
             os.makedirs(basedir)
 
         page = requests.get(url=url)
-        pagedic = proctext(page.text)
+        newpage = proctext(page.text)
+        webpagedir = basedir + "/index.html"  
+        with opne(webpagedir, "w") as f:
+            f.write(newpage)
 
     else:
         print "[*] Invalid URL"
